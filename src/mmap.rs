@@ -3,12 +3,14 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 
 pub struct MAlloc<const N: u64 = 10000> {
     page_no: AtomicUsize,
+    mmap_ptr: AtomicUsize,
 }
 
 impl<const N: u64> MAlloc<N> {
     pub const fn new() -> Self {
         Self {
             page_no: AtomicUsize::new(0),
+            mmap_ptr: AtomicUsize::new(0),
         }
     }
 }
@@ -28,20 +30,31 @@ unsafe impl<const N: u64> GlobalAlloc for MAlloc<N> {
 
         let aligned_page_no = (page_no + align + 1) & !(align + 1);
 
-        let file = std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open("memory/page_1")
-            .unwrap();
+        let mmap_ptr = self.mmap_ptr.load(Ordering::Relaxed);
 
-        file.set_len(N).unwrap();
+        let output = if mmap_ptr == 0 {
+            let file = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open("memory/page_1")
+                .unwrap();
 
-        let mut mmap = unsafe { memmap2::MmapMut::map_mut(&file).unwrap() };
+            file.set_len(N).unwrap();
 
-        let output = mmap.as_mut_ptr().add(aligned_page_no);
-        std::mem::forget(mmap);
-        output
+            let mut mmap = unsafe { memmap2::MmapMut::map_mut(&file).unwrap() };
+            let output = mmap.as_mut_ptr();
+
+            self.mmap_ptr.store(output as usize, Ordering::Relaxed);
+
+            std::mem::forget(mmap);
+            output
+        } else {
+            mmap_ptr as *mut u8
+        };
+
+        output.add(aligned_page_no)
     }
 
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: core::alloc::Layout) {
