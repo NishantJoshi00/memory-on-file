@@ -7,6 +7,8 @@ pub struct MAlloc<const N: u64 = 10000> {
 }
 
 impl<const N: u64> MAlloc<N> {
+    const FILE_NAME: &'static str = "memory/page_1";
+
     pub const fn new() -> Self {
         Self {
             page_no: AtomicUsize::new(0),
@@ -38,12 +40,20 @@ unsafe impl<const N: u64> GlobalAlloc for MAlloc<N> {
                 .write(true)
                 .create(true)
                 .truncate(true)
-                .open("memory/page_1")
+                .open(Self::FILE_NAME)
                 .unwrap();
 
-            file.set_len(N).unwrap();
+            if file.set_len(N).is_err() {
+                return std::ptr::null_mut();
+            }
 
-            let mut mmap = unsafe { memmap2::MmapMut::map_mut(&file).unwrap() };
+            let mmap = memmap2::MmapMut::map_mut(&file);
+
+            let mut mmap = match mmap {
+                Ok(mmap) => mmap,
+                Err(_) => return std::ptr::null_mut(),
+            };
+
             let output = mmap.as_mut_ptr();
 
             self.mmap_ptr.store(output as usize, Ordering::Relaxed);
