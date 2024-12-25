@@ -1,27 +1,28 @@
 # filz
 
-`filz` is a Rust library that provides custom memory allocation strategies, including memory-mapped file allocation and stack allocation. This is a toy project to learn more about Rust and memory allocation.
+An experimental Rust project exploring custom memory allocation strategies, built for learning and understanding low-level memory management concepts.
 
-## Features
+## Description
 
-- Memory-mapped file allocation (`MAlloc`)
-- Stack allocation (`StackAllocator`)
-- Implements the `GlobalAlloc` trait for custom global allocation
+filz is a learning project that implements custom allocators to understand:
 
-## Installation
+- How memory-mapped files work as a backing store for allocations
+- Stack-based memory allocation strategies
+- Rust's global allocator interface (`GlobalAlloc` trait)
+- Safe memory management patterns in systems programming
 
-Add this to your `Cargo.toml`:
+This project is primarily educational and not intended for production use. Each implementation explores different memory management concepts.
 
-```toml
-[dependencies]
-filz = "0.1.0"
-```
+## Memory Allocation Strategies
 
-## Usage
+### Memory-Mapped File Allocator (`MAlloc`)
 
-### Memory-mapped File Allocation
+A simple allocator that uses memory-mapped files as backing storage:
 
-To use the memory-mapped file allocator:
+- Maps files to memory for allocation
+- Implements basic page tracking
+- No deallocation support (educational simplification)
+- Fixed file size with configurable capacity
 
 ```rust
 use filz::mmap::MAlloc;
@@ -30,13 +31,19 @@ use filz::mmap::MAlloc;
 static ALLOCATOR: MAlloc = MAlloc::new();
 
 fn main() {
-    // Your code here
+    // Allocations will be backed by a memory-mapped file
+    let vec = vec![1, 2, 3, 4, 5];
 }
 ```
 
-### Stack Allocation
+### Stack Allocator (`StackAllocator`)
 
-To use the stack allocator:
+A basic stack-based memory allocator:
+
+- Fixed-size memory buffer
+- Simple bump allocation strategy
+- No deallocation (educational simplification)
+- Thread-safe allocation tracking
 
 ```rust
 use filz::stack::StackAllocator;
@@ -45,33 +52,95 @@ use filz::stack::StackAllocator;
 static ALLOCATOR: StackAllocator<4096> = StackAllocator::new();
 
 fn main() {
-    // Your code here
+    // Allocations will use the stack buffer
+    let data = String::from("Hello, World!");
 }
 ```
 
-## Example
+## Installation
 
-```rust
-use core::hint::black_box;
-use filz::mmap::MAlloc;
+If you want to experiment with this project, add it to your `Cargo.toml`:
 
-#[global_allocator]
-static ALLOCATOR: MAlloc = MAlloc::new();
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let data = vec![105, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100];
-    black_box(data);
-    Ok(())
-}
+```toml
+[dependencies]
+filz = "0.1.0"
 ```
+
+## Learning Resources
+
+This project explores several important concepts:
+
+- **Memory Mapping**
+
+  - Using `memmap2` for file-backed memory
+  - Page alignment and memory layout
+  - Virtual memory concepts
+
+- **Stack Allocation**
+
+  - Bump allocation strategy
+  - Memory alignment requirements
+  - Stack memory management
+
+- **Global Allocation**
+  - Implementing `GlobalAlloc` trait
+  - Thread-safe memory allocation
+  - Rust's memory allocator interface
 
 ## Project Structure
 
-- `src/lib.rs`: Main library file
-- `src/mmap.rs`: Implementation of memory-mapped file allocation
-- `src/stack.rs`: Implementation of stack allocation
+```
+filz/
+├── src/
+│   ├── mmap.rs     # Memory-mapped file allocator
+│   ├── stack.rs    # Stack-based allocator
+│   └── lib.rs      # Library interface
+└── memory/         # Directory for memory-mapped files
+```
+
+## Known Limitations
+
+Since this is a learning project, it has several intentional limitations:
+
+- No deallocation support in either allocator
+- Fixed buffer sizes that must be set at compile time
+- Memory leaks by design (educational simplification)
+- No fragmentation handling
+- Basic alignment calculations
+
+## Development
+
+To experiment with the allocators:
+
+```bash
+# Run with memory-mapped allocator
+cargo run
+
+# Switch allocators in main.rs and run with stack allocator
+# Uncomment the StackAllocator and comment out MAlloc
+cargo run
+```
 
 ## Dependencies
 
-- `libc`: "0.2.158"
-- `memmap2`: "0.9.5"
+- `memmap2`: Memory mapping functionality
+- `libc`: System bindings for allocation
+
+## Notes
+
+This project is meant for learning about:
+
+- Memory allocator implementation
+- Rust's allocation interfaces
+- Memory mapping concepts
+- Low-level memory management
+
+It is not intended for production use and deliberately omits many features that would be necessary in a real allocator.
+
+## License
+
+MIT License - See LICENSE for details
+
+---
+
+Built for 🦀 learning and experimentation
